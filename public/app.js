@@ -124,7 +124,7 @@
     els.nav = h('nav', { class: 'catnav', 'aria-label': 'Categories' }, els.navList);
     els.main = h('main');
     els.foot = h('footer', { class: 'foot' });
-    els.editor = h('dialog', { id: 'editor', 'aria-label': 'Item editor' });
+    els.editor = h('dialog', { id: 'editor', class: 'product-editor', 'aria-label': 'Item editor' });
     app.appendChild(h('div', { class: 'wrap' }, masthead, els.nav, els.main, els.foot));
     app.appendChild(els.editor);
     app.appendChild(els.toast);
@@ -207,7 +207,7 @@
     var t = (location.hash || '').replace(/^#/, '');
     if (t.indexOf('p-') === 0) { var productParts = t.slice(2).split('?'); return { name: 'item', id: productParts[0], colour: new URLSearchParams(productParts[1] || '').get('colour') || '', token: t }; }
     if (t.indexOf('c-') === 0) { var parts = t.slice(2).split('?'); return { name: 'cat', id: parts[0], subcat: new URLSearchParams(parts[1] || '').get('sub') || '', token: t }; }
-    if (t === 'new' || t === 'search' || t === 'admin' || t === 'wishlist' || t === 'diary') return { name: t, token: t };
+    if (t === 'add-item' || t === 'new' || t === 'search' || t === 'admin' || t === 'wishlist' || t === 'diary') return { name: t, token: t };
     return { name: 'home', token: 'home' };
   }
 
@@ -218,12 +218,28 @@
       if (route.name !== 'search') { ui.q = ''; els.search.value = ''; }
       document.body.classList.remove('filters-open');
     }
+    if (addPage && (route.name !== 'add-item' || !isAdmin)) {
+      disposeAddPage();
+      disposeAddPage = null;
+      addPage = null;
+      addContext = null;
+    }
     lastKey = route.token;
     renderNav(); renderFoot();
     clear(els.main);
     curRefresh = null;
     var node;
     if (!loaded) node = loadError ? h('div', { class: 'empty' }, h('h2', { text: 'Could not load the wardrobe' }), h('p', { text: loadError }), h('button', { class: 'btn primary', type: 'button', text: 'Try again', onclick: function () { location.reload(); } })) : h('p', { class: 'boot', text: 'Loading…' });
+    else if (route.name === 'add-item') {
+      if (!isAdmin) node = pageLogin();
+      else {
+        if (!addPage) {
+          addPage = h('section', { class: 'product-editor add-product-page' });
+          buildEditor(addPage, null, addContext && addContext.category, addContext && addContext.imported);
+        }
+        node = addPage;
+      }
+    }
     else if (route.name === 'item') node = pageItem(itemById(route.id));
     else if (route.name === 'cat') {
       var c = catById(route.id);
@@ -265,6 +281,7 @@
     if (!loaded) return base;
     if (route.name === 'item') { var it = itemById(route.id); return it ? it.name + ' · ' + base : base; }
     if (route.name === 'cat') { var c = catById(route.id); return c ? c.name + ' · ' + base : base; }
+    if (route.name === 'add-item') return 'Add a new piece · ' + base;
     if (route.name === 'new') return 'New arrivals · ' + base;
     if (route.name === 'wishlist') return 'Wishlist · ' + base;
     if (route.name === 'diary') return 'Diary calendar · ' + base;
@@ -298,18 +315,20 @@
     } else m.appendChild(placeholder(it));
     return m;
   }
-  function card(it) {
+  function card(it, colour) {
+    var href = '#p-' + it.id + (colour ? '?colour=' + encodeURIComponent(colour.id) : '');
+    if (colour) it = Object.assign({}, it, { name: it.name + ' · ' + colour.name, images: colour.images });
     var c = catById(it.cat);
     var subcategory = c && (c.subcategories || []).find(function (sub) { return sub.id === it.subcat; });
     var label = route.name === 'cat' ? (subcategory ? subcategory.name : '') : (c ? c.name : 'Uncategorised');
     var art = h('article', { class: 'card' },
-      h('a', { class: 'card-main', href: '#p-' + it.id },
+      h('a', { class: 'card-main', href: href },
         media(it),
         h('div', { class: 'card-info' },
           label ? h('span', { class: 'cat', text: label }) : null,
           h('h3', { text: it.name }))));
     var copy = h('button', { class: 'btn sm preview-copy', type: 'button', 'aria-label': 'Copy link to ' + it.name, title: 'Copy link', onclick: function () {
-      var url = location.origin + location.pathname + '#p-' + it.id;
+      var url = location.origin + location.pathname + href;
       function fallback() {
         var input = art.querySelector('.preview-link');
         if (!input) { input = h('input', { class: 'preview-link', type: 'text', readonly: true, 'aria-label': 'Link to ' + it.name }); art.appendChild(input); }
@@ -364,8 +383,12 @@
     function refresh() {
       var list = visible();
       clear(grid);
-      list.forEach(function (it) { grid.appendChild(card(it)); });
-      var n = list.length + (list.length === 1 ? ' piece' : ' pieces');
+      list.forEach(function (it) {
+        if (o.name === 'cat' && it.colours && it.colours.length) {
+          it.colours.forEach(function (colour) { grid.appendChild(card(it, colour)); });
+        } else grid.appendChild(card(it));
+      });
+      var n = grid.childElementCount + (grid.childElementCount === 1 ? ' piece' : ' pieces');
       count.textContent = n;
       if (o.name === 'search') subEl.textContent = ui.q.trim() ? 'Results for “' + ui.q.trim() + '”' : 'All pieces';
       if (!list.length) {
@@ -538,11 +561,17 @@
         h('h1', { text: it.name }),
         colours.length ? h('div', { class: 'colour-options' }, h('p', { class: 'lbl', text: 'Colour: ' + selectedColour.name }),
           h('div', { class: 'colour-choices', role: 'group', 'aria-label': 'Choose a colour' }, colours.map(function (colour) {
-            return h('button', { class: 'btn colour-choice', type: 'button', text: colour.name, 'aria-pressed': colour.id === selectedColour.id ? 'true' : 'false',
-              onclick: function () { location.hash = 'p-' + it.id + '?colour=' + encodeURIComponent(colour.id); } });
+            return h('button', { class: 'btn colour-choice', type: 'button', title: colour.name, 'aria-label': colour.name, 'aria-pressed': colour.id === selectedColour.id ? 'true' : 'false',
+              onclick: function () { location.hash = 'p-' + it.id + '?colour=' + encodeURIComponent(colour.id); } },
+              colour.images && colour.images.length ? h('img', { src: img(colour.images[0]), alt: '', loading: 'lazy' }) : h('span', { text: colour.name }));
           }))) : null,
         actions, linkSlot))));
     show(0);
+    var selectedChoice = f.querySelector('.colour-choice[aria-pressed="true"]');
+    if (selectedChoice) requestAnimationFrame(function () {
+      var strip = selectedChoice.parentElement;
+      strip.scrollLeft = Math.max(0, selectedChoice.offsetLeft - (strip.clientWidth - selectedChoice.offsetWidth) / 2);
+    });
 
     return f;
   }
@@ -892,8 +921,14 @@
     }, function () { return Promise.reject(new Error('Could not read that photo.')); });
   }
 
+  var addPage, addContext, disposeAddPage;
   function openEditor(item, presetCat, imported) {
-    var d = els.editor;
+    if (item) return buildEditor(els.editor, item);
+    addContext = { category: presetCat, imported: imported, returnTo: route.token };
+    location.hash = 'add-item';
+  }
+  function buildEditor(d, item, presetCat, imported) {
+    var returnTo = addContext ? addContext.returnTo : 'admin';
     var isEdit = !!item;
     var firstCat = presetCat && catById(presetCat) ? presetCat : (state.categories[0] ? state.categories[0].id : '');
     var draft = item ? { id: item.id, name: item.name, cat: item.cat, subcat: item.subcat || '', original_link: item.original_link || '' } : { id: '', name: '', cat: firstCat, subcat: '', original_link: '' };
@@ -924,9 +959,18 @@
     var saveBtn;
 
     function release(e) { if (e.url) URL.revokeObjectURL(e.url); }
+    function dispose() {
+      closed = true;
+      importController.abort();
+      colourDrafts.forEach(function (colour) { colour.photos.forEach(release); });
+    }
+    if (!isEdit) disposeAddPage = dispose;
     function closeEditor() {
-      if (saving) return;
-      closed = true; importController.abort(); colourDrafts.forEach(function (colour) { colour.photos.forEach(release); }); d.close();
+      if (saving || closed) return;
+      if (!isEdit) { location.hash = returnTo; return; }
+      dispose();
+      d.close();
+      clear(d);
     }
     d.oncancel = function (ev) { ev.preventDefault(); closeEditor(); };
     function setSaving(value) {
@@ -1181,7 +1225,7 @@
       var req = isEdit ? api('PUT', '/api/items/' + encodeURIComponent(draft.id), fd) : api('POST', '/api/items', fd);
       req.then(function (res) {
         toast(isEdit ? 'Saved “' + nm + '”' : 'Added “' + nm + '”');
-        setSaving(false); closeEditor();
+        if (isEdit) { setSaving(false); closeEditor(); }
         if (!isEdit && imported && imported.importSession === importDraft) {
           importDraft = { url: '', result: null, selected: [], scanning: false, preparing: false, error: '' };
           if (route.name === 'admin' && ui.tab === 'import') render(true);
@@ -1190,14 +1234,15 @@
           if (wishlist.entries) wishlist.entries = wishlist.entries.filter(function (entry) { return entry.id !== imported.wishlistId; });
           if (wishlistDraft.id === imported.wishlistId) wishlistDraft = { id: '', title: '', url: '', saving: false, error: '' };
         }
-        return reload().then(function () { if (!isEdit && res.id && (route.name !== 'admin' || (imported && imported.importSession))) location.hash = 'p-' + res.id; });
+        if (!isEdit && !closed) location.hash = returnTo === 'admin' && !(imported && imported.importSession) ? 'admin' : 'p-' + res.id;
+        return reload().catch(function () { toast('Saved. Refresh the page to reload the wardrobe.', true); });
       }).catch(function (e) { setSaving(false); saveBtn.textContent = isEdit ? 'Save changes' : 'Add to catalogue'; err.textContent = e.message; });
     } });
 
-    d.appendChild(h('button', { class: 'dlg-close', type: 'button', 'aria-label': 'Close product editor', onclick: closeEditor, text: '×' }));
+    if (isEdit) d.appendChild(h('button', { class: 'dlg-close', type: 'button', 'aria-label': 'Close product editor', onclick: closeEditor, text: '×' }));
     d.appendChild(h('header', { class: 'editor-header' },
       h('p', { class: 'editor-eyebrow', text: 'YOUR WARDROBE' }),
-      h('h2', { id: 'editor-title', text: isEdit ? 'Edit your piece' : 'Add a new piece' }),
+      h(isEdit ? 'h2' : 'h1', { id: 'editor-title', text: isEdit ? 'Edit your piece' : 'Add a new piece' }),
       h('p', { id: 'editor-description', text: 'Start with the details, then add the colours you love.' })));
     d.appendChild(h('div', { class: 'ed' },
       h('section', { class: 'editor-details', 'aria-labelledby': 'editor-details-title' },
@@ -1206,7 +1251,7 @@
         h('div', { class: 'field' }, h('label', { for: 'f-cat', text: 'Category' }), cat),
         h('div', { class: 'field' }, h('label', { for: 'f-subcat', text: 'Subcategory' }), subcat,
           h('span', { class: 'hint', text: 'Optional. Keep your collection organised.' })),
-        h('p', { class: 'editor-cover-note', text: 'The first photo of the first colour is your catalogue cover.' })),
+        h('p', { class: 'editor-cover-note', text: 'The first photo for each colour is its category cover.' })),
       h('section', { class: 'editor-variants', 'aria-labelledby': 'editor-colours-title' },
         colourControls,
         h('div', { class: 'field editor-photos' }, h('div', { class: 'editor-photo-heading' }, photoHeading, h('div', { class: 'editor-photo-tools' }, photoCount, importButton)), importPanel, photos,
@@ -1215,7 +1260,7 @@
       h('div', { class: 'editor-save-status' }, editorSummary, err),
       h('div', { class: 'grp' }, h('button', { class: 'btn', type: 'button', text: 'Cancel', onclick: closeEditor }), saveBtn)));
     drawPhotos();
-    if (!d.open) d.showModal();
+    if (isEdit && !d.open) d.showModal();
     if (imported && imported.files) addFiles(imported.files);
   }
 
