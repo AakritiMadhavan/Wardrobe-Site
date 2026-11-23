@@ -949,9 +949,9 @@ body.on-login .studio-login { width:100%; max-width:1100px; margin:0; min-height
 #editor .editor-import-panel[hidden] { display:none; }
 #editor .editor-import-panel p { margin:0; }
 #editor .editor-import-panel > .btn { justify-self:start; }
-#editor .editor-import-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:8px; max-height:180px; overflow:auto; }
+#editor .editor-import-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(min(100%,110px),1fr)); grid-auto-rows:clamp(140px,20vh,200px); gap:8px; max-height:min(48vh,420px); overflow-y:auto; }
 #editor .editor-import-photo { position:relative; cursor:pointer; border:1px solid var(--line); background:var(--surface); border-radius:6px; overflow:hidden; }
-#editor .editor-import-photo img { width:100%; height:90px; object-fit:contain; display:block; }
+#editor .editor-import-photo img { width:100%; height:100%; object-fit:contain; display:block; }
 #editor .editor-import-photo input { position:absolute; left:6px; top:6px; width:18px; height:18px; min-height:0; padding:0; accent-color:var(--accent); }
 #editor .editor-import-photo:has(input:checked) { outline:2px solid var(--accent); outline-offset:-2px; }
 #editor .editor-import-photo.unavailable { opacity:.4; cursor:default; }
@@ -1038,12 +1038,12 @@ body.on-item .i-actions .icon-action { display:inline-flex; align-items:center; 
 .wear-day:disabled { color:var(--muted); opacity:.4; }
 .wear-help { margin:10px 0 0; color:var(--muted); font-size:12px; line-height:1.6; }
 /* Fit the gallery, product details and wear calendar within the viewport. */
-body.on-item:has(.wear-calendar) { height:100svh; min-height:0; overflow:hidden; }
-body.on-item:has(.wear-calendar) .wrap { height:100%; min-height:0; }
-body.on-item:has(.wear-calendar) main { display:flex; flex-direction:column; flex:1 1 0; min-height:0; }
-body.on-item:has(.wear-calendar) .item { display:grid; flex:1; min-height:0; gap:24px; padding-block:12px; align-items:stretch; }
-body.on-item:has(.wear-calendar) .gal { height:100%; min-height:0; }
-body.on-item:has(.wear-calendar) .i-body { display:grid; align-self:center; min-height:0; max-height:100%; padding:0; gap:12px; }
+body.on-item:has(.wear-dialog) { height:100svh; min-height:0; overflow:hidden; }
+body.on-item:has(.wear-dialog) .wrap { height:100%; min-height:0; }
+body.on-item:has(.wear-dialog) main { display:flex; flex-direction:column; flex:1 1 0; min-height:0; }
+body.on-item:has(.wear-dialog) .item { display:grid; flex:1; min-height:0; gap:24px; padding-block:12px; align-items:stretch; }
+body.on-item:has(.wear-dialog) .gal { height:100%; min-height:0; }
+body.on-item:has(.wear-dialog) .i-body { display:grid; align-self:center; min-height:0; max-height:100%; padding:0; gap:12px; }
 body.on-item .i-summary { display:grid; align-content:start; gap:12px; min-width:0; }
 body.on-item .i-summary h1 { font-size:clamp(26px,3vw,44px); line-height:1.08; margin:0; }
 body.on-item .colour-options { margin:0; min-width:0; }
@@ -1057,25 +1057,16 @@ body.on-item .wear-help { margin-top:6px; }
 body.on-item .crumbs { padding-top:10px; }
 body.on-item .foot { padding-block:8px; }
 @media(max-width:700px){
- body.on-item:has(.wear-calendar) .item { grid-template-columns:minmax(0,.75fr) minmax(0,1.25fr); grid-template-rows:minmax(0,1fr) auto; gap:10px 14px; padding-block:10px; }
- body.on-item:has(.wear-calendar) .i-body { display:contents; }
- body.on-item:has(.wear-calendar) .gal { grid-column:1; grid-row:1; width:100%; height:100%; flex:none; }
- body.on-item:has(.wear-calendar) .i-summary { grid-column:2; grid-row:1; align-self:center; gap:8px; }
- body.on-item:has(.wear-calendar) .i-summary h1 { font-size:clamp(18px,5.5vw,24px); }
- body.on-item:has(.wear-calendar) .wear-calendar { grid-column:1 / -1; grid-row:2; width:100%; padding:10px; }
- body.on-item:has(.wear-calendar) .wear-help { font-size:12px; line-height:1.4; }
- body.on-item:has(.wear-calendar) .masthead { padding-block:8px; gap:8px; }
- body.on-item:has(.wear-calendar) .catnav a { padding-block:8px; }
+ body.on-item:has(.wear-dialog) .item { grid-template-columns:minmax(0,.75fr) minmax(0,1.25fr); grid-template-rows:minmax(0,1fr); gap:10px 14px; padding-block:10px; }
+ body.on-item:has(.wear-dialog) .i-body { display:contents; }
+ body.on-item:has(.wear-dialog) .gal { grid-column:1; grid-row:1; width:100%; height:100%; flex:none; }
+ body.on-item:has(.wear-dialog) .i-summary { grid-column:2; grid-row:1; align-self:center; gap:8px; }
+ body.on-item:has(.wear-dialog) .i-summary h1 { font-size:clamp(18px,5.5vw,24px); }
+ body.on-item:has(.wear-dialog) .masthead { padding-block:8px; gap:8px; }
+ body.on-item:has(.wear-dialog) .catnav a { padding-block:8px; }
 }
 @media(max-height:760px){
- body.on-item:has(.wear-calendar) .wear-day { height:23px; }
- body.on-item:has(.wear-calendar) .wear-days { gap:3px; }
- body.on-item:has(.wear-calendar) .wear-heading { margin-bottom:5px; }
- body.on-item:has(.wear-calendar) .wear-toolbar { margin-bottom:5px; }
- body.on-item:has(.wear-calendar) .wear-month-picker { height:30px; }
- body.on-item:has(.wear-calendar) .wear-nav { height:28px; }
- body.on-item:has(.wear-calendar) .wear-calendar { padding:8px; }
- body.on-item:has(.wear-calendar) .foot { padding-block:5px; }
+ body.on-item:has(.wear-dialog) .foot { padding-block:5px; }
 }
 
 /* Portrait product photography: size the frame from the available gallery space. */
@@ -1086,7 +1077,7 @@ body.on-item .gal > .media img { object-fit:contain; }
 body.on-item .gal .thumbs { width:100%; }
 body.on-item .gal .ph small { max-width:100%; padding-inline:8px; text-align:center; overflow-wrap:anywhere; }
 @media(min-width:701px){
- body.on-item:has(.wear-calendar) .item { grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr); }
+ body.on-item:has(.wear-dialog) .item { grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr); }
 }
 @media(max-width:700px){
  body.on-item .gal:has(.thumbs) { --gallery-strip:46px; }
@@ -1095,3 +1086,8 @@ body.on-item .gal .ph small { max-width:100%; padding-inline:8px; text-align:cen
 /* Keep long colour names on one line in the wear calendar heading. */
 body.on-item .wear-heading h2 { min-width:0; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
 body.on-item .wear-total { flex:none; }
+
+.wear-dialog { width:min(560px,calc(100% - 24px)); max-height:calc(100dvh - 24px); }
+body.on-item .wear-dialog .wear-calendar { padding:20px; border:0; }
+.wear-dialog .wear-heading { min-height:36px; padding-right:44px; }
+.wear-dialog .wear-day { height:36px; }

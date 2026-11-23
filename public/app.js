@@ -518,6 +518,18 @@
     actions.appendChild(copyBtn);
     if (isAdmin) actions.appendChild(h('button', { class: 'btn icon-action', type: 'button', 'aria-label': 'Edit item', title: 'Edit item', onclick: function () { openEditor(it); } }, actionIcon('pencil')));
 
+    if (isAdmin) {
+      var calendarDialog = h('dialog', { class: 'wear-dialog', 'aria-label': 'Wear calendar for ' + it.name + (selectedColour ? ' in ' + selectedColour.name : '') });
+      var closeCalendar = h('button', { class: 'dlg-close', type: 'button', 'aria-label': 'Close wear calendar', text: '×', onclick: function () { calendarDialog.close(); } });
+      actions.appendChild(h('button', { class: 'btn', type: 'button', text: 'Wear calendar', 'aria-haspopup': 'dialog', onclick: function () {
+        clear(calendarDialog);
+        calendarDialog.appendChild(closeCalendar);
+        calendarDialog.appendChild(productWearCalendar(it, selectedColour));
+        calendarDialog.showModal();
+      } }));
+      f.appendChild(calendarDialog);
+    }
+
     f.appendChild(h('section', { class: 'item' },
       h('div', { class: 'gal' }, main, gallery.length > 1 ? thumbs : null),
       h('div', { class: 'i-body' },
@@ -529,7 +541,7 @@
             return h('button', { class: 'btn colour-choice', type: 'button', text: colour.name, 'aria-pressed': colour.id === selectedColour.id ? 'true' : 'false',
               onclick: function () { location.hash = 'p-' + it.id + '?colour=' + encodeURIComponent(colour.id); } });
           }))) : null,
-        actions, linkSlot), isAdmin ? productWearCalendar(it, selectedColour) : null)));
+        actions, linkSlot))));
     show(0);
 
     return f;
