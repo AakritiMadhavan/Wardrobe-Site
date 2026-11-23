@@ -375,15 +375,15 @@
     catalogHeading.appendChild(h('div', { class: 'list-head category-heading' }, h('h2', { text: o.title }), subEl));
 
     var count = h('p', { class: 'count', 'aria-live': 'polite' });
-    catalogHeading.appendChild(count);
     if (o.name === 'cat') {
       var toggle = h('input', { type: 'checkbox', checked: showAllColours, onchange: function () {
         showAllColours = toggle.checked;
         try { localStorage.setItem('wardrobe.showAllColours', String(showAllColours)); } catch (e) {}
         refresh();
       } });
-      catalogHeading.appendChild(h('label', { class: 'category-colour-toggle' }, toggle, 'Show all colours'));
-    }
+      catalogHeading.appendChild(h('div', { class: 'category-view-controls' }, count,
+        h('label', { class: 'category-colour-toggle' }, toggle, 'Show all colours')));
+    } else catalogHeading.appendChild(count);
     var grid = h('div', { class: 'grid' });
 
     function visible() {
