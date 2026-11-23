@@ -1016,10 +1016,13 @@ body.on-login .studio-login { width:100%; max-width:1100px; margin:0; min-height
 .colour-choices { display: flex; flex-wrap: wrap; gap: 8px; }
 .colour-choices .btn[aria-pressed="true"] { background: var(--ink, #232323); color: var(--surface, #fff); border-color: var(--ink, #232323); }
 
+.category-colour-toggle { grid-column:1/-1; justify-self:end; display:inline-flex; align-items:center; gap:8px; padding:5px 0; font-size:14px; cursor:pointer; }
+.category-colour-toggle input { width:18px; height:18px; margin:0; accent-color:var(--accent); }
+
 /* A quiet boundary between the category heading and its collection. */
 .catalog-heading { border-bottom:1px solid var(--line); padding-bottom:18px; margin-bottom:18px; }
 body.on-item .i-actions .icon-action { display:inline-flex; align-items:center; justify-content:center; width:40px; min-width:40px; height:40px; min-height:40px; padding:0; flex:0 0 40px; }
-.i-actions .icon-action svg { display:block; flex:none; }
+.i-actions .icon-action svg { display:block; flex:none; width:20px; height:20px; }
 
 /* The owner's wear calendar stays with the product, across its colour options. */
 .wear-calendar { width:100%; max-width:none; margin-top:6px; padding:16px; border:1px solid var(--line); border-radius:12px; background:var(--surface); }

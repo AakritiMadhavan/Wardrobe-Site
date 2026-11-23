@@ -307,31 +307,38 @@
     d.style.setProperty('--ph', tint(it.id));
     return d;
   }
-  function media(it) {
+  function media(it, images) {
     var m = h('div', { class: 'media' });
-    if (it.images.length) {
-      m.appendChild(h('img', { src: img(it.images[0]), alt: it.name, loading: 'lazy', decoding: 'async' }));
-      if (it.images[1]) m.appendChild(h('img', { class: 'alt', src: img(it.images[1]), alt: '', loading: 'lazy', decoding: 'async' }));
+    if (images.length) {
+      m.appendChild(h('img', { src: img(images[0]), alt: it.name, loading: 'lazy', decoding: 'async' }));
+      if (images[1]) m.appendChild(h('img', { class: 'alt', src: img(images[1]), alt: '', loading: 'lazy', decoding: 'async' }));
     } else m.appendChild(placeholder(it));
     return m;
   }
   function card(it, colour) {
     var href = '#p-' + it.id + (colour ? '?colour=' + encodeURIComponent(colour.id) : '');
-    if (colour) it = Object.assign({}, it, { name: it.name + ' · ' + colour.name, images: colour.images });
+    var title = colour ? it.name + ' · ' + colour.name : it.name;
+    var colours = it.colours || [];
+    var images = it.images;
     var c = catById(it.cat);
     var subcategory = c && (c.subcategories || []).find(function (sub) { return sub.id === it.subcat; });
     var label = route.name === 'cat' ? (subcategory ? subcategory.name : '') : (c ? c.name : 'Uncategorised');
+    if (route.name === 'cat') {
+      if (colours.length) images = (colour || colours[0]).images;
+      var count = colours.length || 1;
+      label = (label ? label + ' · ' : '') + count + (count === 1 ? ' colour' : ' colours');
+    }
     var art = h('article', { class: 'card' },
       h('a', { class: 'card-main', href: href },
-        media(it),
+        media(it, images),
         h('div', { class: 'card-info' },
           label ? h('span', { class: 'cat', text: label }) : null,
-          h('h3', { text: it.name }))));
-    var copy = h('button', { class: 'btn sm preview-copy', type: 'button', 'aria-label': 'Copy link to ' + it.name, title: 'Copy link', onclick: function () {
+          h('h3', { text: title }))));
+    var copy = h('button', { class: 'btn sm preview-copy', type: 'button', 'aria-label': 'Copy link to ' + title, title: 'Copy link', onclick: function () {
       var url = location.origin + location.pathname + href;
       function fallback() {
         var input = art.querySelector('.preview-link');
-        if (!input) { input = h('input', { class: 'preview-link', type: 'text', readonly: true, 'aria-label': 'Link to ' + it.name }); art.appendChild(input); }
+        if (!input) { input = h('input', { class: 'preview-link', type: 'text', readonly: true, 'aria-label': 'Link to ' + title }); art.appendChild(input); }
         input.value = url; input.focus(); input.select();
       }
       try { navigator.clipboard.writeText(url).then(function () { toast('Link copied'); }, fallback); } catch (e) { fallback(); }
@@ -357,6 +364,8 @@
   }
 
   /* ---------- list pages ---------- */
+  var showAllColours = false;
+  try { showAllColours = localStorage.getItem('wardrobe.showAllColours') === 'true'; } catch (e) {}
   function pageList(o) {
     var f = document.createDocumentFragment();
     var catalogHeading = h('header', { class: 'catalog-heading' }, crumbs(o.crumbs.slice(0, -1)));
@@ -367,6 +376,14 @@
 
     var count = h('p', { class: 'count', 'aria-live': 'polite' });
     catalogHeading.appendChild(count);
+    if (o.name === 'cat') {
+      var toggle = h('input', { type: 'checkbox', checked: showAllColours, onchange: function () {
+        showAllColours = toggle.checked;
+        try { localStorage.setItem('wardrobe.showAllColours', String(showAllColours)); } catch (e) {}
+        refresh();
+      } });
+      catalogHeading.appendChild(h('label', { class: 'category-colour-toggle' }, toggle, 'Show all colours'));
+    }
     var grid = h('div', { class: 'grid' });
 
     function visible() {
@@ -384,12 +401,11 @@
       var list = visible();
       clear(grid);
       list.forEach(function (it) {
-        if (o.name === 'cat' && it.colours && it.colours.length) {
+        if (o.name === 'cat' && showAllColours && it.colours && it.colours.length) {
           it.colours.forEach(function (colour) { grid.appendChild(card(it, colour)); });
         } else grid.appendChild(card(it));
       });
-      var n = grid.childElementCount + (grid.childElementCount === 1 ? ' piece' : ' pieces');
-      count.textContent = n;
+      count.textContent = list.length + (list.length === 1 ? ' piece' : ' pieces');
       if (o.name === 'search') subEl.textContent = ui.q.trim() ? 'Results for “' + ui.q.trim() + '”' : 'All pieces';
       if (!list.length) {
         grid.style.display = 'block';
@@ -544,12 +560,12 @@
     if (isAdmin) {
       var calendarDialog = h('dialog', { class: 'wear-dialog', 'aria-label': 'Wear calendar for ' + it.name + (selectedColour ? ' in ' + selectedColour.name : '') });
       var closeCalendar = h('button', { class: 'dlg-close', type: 'button', 'aria-label': 'Close wear calendar', text: '×', onclick: function () { calendarDialog.close(); } });
-      actions.appendChild(h('button', { class: 'btn', type: 'button', text: 'Wear calendar', 'aria-haspopup': 'dialog', onclick: function () {
+      actions.appendChild(h('button', { class: 'btn icon-action', type: 'button', title: 'Wear calendar', 'aria-label': 'Wear calendar', 'aria-haspopup': 'dialog', onclick: function () {
         clear(calendarDialog);
         calendarDialog.appendChild(closeCalendar);
         calendarDialog.appendChild(productWearCalendar(it, selectedColour));
         calendarDialog.showModal();
-      } }));
+      } }, headerIcon('calendar')));
       f.appendChild(calendarDialog);
     }
 
@@ -1251,7 +1267,7 @@
         h('div', { class: 'field' }, h('label', { for: 'f-cat', text: 'Category' }), cat),
         h('div', { class: 'field' }, h('label', { for: 'f-subcat', text: 'Subcategory' }), subcat,
           h('span', { class: 'hint', text: 'Optional. Keep your collection organised.' })),
-        h('p', { class: 'editor-cover-note', text: 'The first photo for each colour is its category cover.' })),
+        h('p', { class: 'editor-cover-note', text: 'The first photo of the first colour is your category cover.' })),
       h('section', { class: 'editor-variants', 'aria-labelledby': 'editor-colours-title' },
         colourControls,
         h('div', { class: 'field editor-photos' }, h('div', { class: 'editor-photo-heading' }, photoHeading, h('div', { class: 'editor-photo-tools' }, photoCount, importButton)), importPanel, photos,
